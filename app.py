@@ -11,16 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilos visuales
-st.markdown("""
-<style>
-    .main-header { font-size: 2.2rem; color: #0E2F44; font-weight: bold; }
-    .sub-header { font-size: 1.1rem; color: #555; }
-    .price-card { background-color: #f8f9fa; border-left: 4px solid #008080; padding: 12px; border-radius: 6px; margin-bottom: 10px; }
-    .badge-city { background-color: #e1f5fe; color: #0288d1; padding: 3px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; }
-</style>
-""", unsafe_allow_headers=True)
-
 class AgenteFarmaciasColombia:
     def __init__(self):
         self.headers = {
@@ -53,7 +43,7 @@ class AgenteFarmaciasColombia:
         return resultados
 
     def buscar_farmaexpress(self, producto: str, ciudad: str = "") -> list:
-        """Busca específicamente en Farmaexpress y sitios relacionados."""
+        """Busca específicamente en Farmaexpress."""
         query = f"site:farmaexpress.com {producto} {ciudad} precio".strip()
         resultados = []
         try:
@@ -91,13 +81,12 @@ class AgenteFarmaciasColombia:
         return resultados
 
 
-# INTERFAZ GRÁFICA EN STREAMLIT
-st.markdown('<p class="main-header">💊 Agente Comercial de Precios Farmacéuticos</p>', unsafe_allow_headers=True)
-st.markdown('<p class="sub-header">Evaluación en tiempo real para droguerías y productos farmacéuticos en Colombia</p>', unsafe_allow_headers=True)
+# INTERFAZ GRÁFICA
+st.title("💊 Agente Comercial de Precios Farmacéuticos")
+st.caption("Evaluación en tiempo real para droguerías y productos farmacéuticos en Colombia")
 
 st.divider()
 
-# Formulario de entrada
 col1, col2 = st.columns([2, 1])
 
 with col1:
@@ -134,53 +123,52 @@ if st.button("🔍 Evaluar y Comparar Precios", type="primary", use_container_wi
     else:
         agente = AgenteFarmaciasColombia()
         
-        st.markdown(f"### 📊 Resultados de búsqueda para **'{producto_input}'** <span class='badge-city'>Ciudad: {ciudad_input}</span>", unsafe_allow_headers=True)
-        st.write("")
+        st.subheader(f"📊 Resultados para '{producto_input}' (Ciudad: {ciudad_input})")
 
         # 1. FARMAEXPRESS
         if incluir_farmaexpress:
-            st.markdown("#### 🟢 Precios / Coincidencias en **Farmaexpress**")
+            st.markdown("### 🟢 Precios / Coincidencias en **Farmaexpress**")
             with st.spinner("Consultando Farmaexpress..."):
                 fx_res = agente.buscar_farmaexpress(producto_input, ciudad_input)
                 if fx_res:
                     for item in fx_res:
-                        st.markdown(f"""
-                        <div class="price-card">
-                            <b>{item['titulo']}</b><br>
-                            <small>{item['snippet']}</small><br>
-                            <a href="{item['enlace']}" target="_blank">🔗 Ver enlace de compra en Farmaexpress</a>
-                        </div>
-                        """, unsafe_allow_headers=True)
+                        with st.container(border=True):
+                            st.write(f"**{item['titulo']}**")
+                            st.caption(item['snippet'])
+                            st.link_button("🔗 Ver oferta en Farmaexpress", item['enlace'])
                 else:
                     st.info("No se encontraron coincidencias directas en Farmaexpress para esta búsqueda.")
 
         # 2. MERCADO LIBRE
         if incluir_mercadolibre:
-            st.markdown("#### 🛒 Opciones en **Mercado Libre Colombia**")
+            st.markdown("### 🛒 Opciones en **Mercado Libre Colombia**")
             with st.spinner("Consultando Mercado Libre..."):
                 ml_res = agente.buscar_mercadolibre(producto_input, ciudad_input)
                 if ml_res:
                     cols_ml = st.columns(len(ml_res))
                     for idx, item in enumerate(ml_res):
                         with cols_ml[idx]:
-                            st.metric(label=item['comercio'], value=item['precio'])
-                            st.caption(item['producto'])
-                            st.markdown(f"[Ver oferta]({item['enlace']})")
+                            with st.container(border=True):
+                                st.metric(label=item['comercio'], value=item['precio'])
+                                st.caption(item['producto'])
+                                st.link_button("Ver en Mercado Libre", item['enlace'])
                 else:
                     st.info("No se encontraron resultados relevantes en Mercado Libre.")
 
-        # 3. CADENAS Y OTRAS FARMACIAS
+        # 3. OTRAS CADENAS
         if cadenas_seleccionadas:
-            st.markdown("#### 💊 Otras Cadenas de Farmacias Seleccionadas")
+            st.markdown("### 💊 Otras Cadenas Seleccionadas")
             with st.spinner("Consultando cadenas farmacéuticas..."):
                 for cadena in cadenas_seleccionadas:
                     res_c = agente.buscar_otras_farmacias(producto_input, ciudad_input, cadena)
                     if res_c:
-                        st.write(f"**Resultados para {cadena}:**")
+                        st.markdown(f"**Resultados para `{cadena}`:**")
                         for r in res_c[:2]:
-                            st.markdown(f"- [{r['titulo']}]({r['enlace']}) - *{r['snippet'][:120]}...*")
+                            with st.container(border=True):
+                                st.write(f"[{r['titulo']}]({r['enlace']})")
+                                st.caption(r['snippet'])
                     else:
                         st.caption(f"Sin resultados recientes para {cadena}")
 
 st.divider()
-st.caption("Agente Comercial de Precios Farmacéuticos | Colombia - Consultas dinámicas sin costo de API")
+st.caption("Agente Comercial de Precios Farmacéuticos | Colombia")
